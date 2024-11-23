@@ -220,3 +220,79 @@ class JobRecommender:
         recommendations.sort(key=lambda x: x['similarity_score'], reverse=True)
         
         return recommendations
+    
+    def recommend_similar_jobs(self, job_id, k=3):
+        """
+        Recommend similar jobs for a given job ID using KNN
+        
+        Args:
+            job_id (int): ID of the job to find similar jobs for
+            k (int): Number of similar jobs to recommend
+        
+        Returns:
+            list: Top K similar jobs with similarity scores
+        """
+        # Find the target job in the job list
+        target_job = next((job for job in self.job_features if job['id'] == job_id), None)
+        
+        if target_job is None:
+            raise ValueError(f"Job with ID {job_id} not found")
+        
+        # Prepare feature matrix
+        job_features_matrix, scaler = self.prepare_feature_matrix()
+        
+        # Prepare target job feature vector
+        target_job_vector = self.extract_features(target_job)
+        
+        # Normalize target job vector
+        normalized_target_job = scaler.transform([target_job_vector])
+        
+        # Create KNN model
+        knn = NearestNeighbors(n_neighbors=k+1, metric='euclidean')  # k+1 to exclude the job itself
+        knn.fit(job_features_matrix)
+        
+        # Find nearest neighbors
+        distances, indices = knn.kneighbors(normalized_target_job)
+        
+        # Prepare recommendations
+        recommendations = []
+        for dist, idx in zip(distances[0], indices[0]):
+            # Skip the job itself
+            if self.job_features[idx]['id'] == job_id:
+                continue
+            
+            job = self.job_features[idx]
+            
+            # Advanced similarity calculation
+            skill_match = self.calculate_skill_match(job.get('skill_ids', []))
+            salary_compatibility = self.calculate_salary_compatibility({
+                'min_salary': job.get('min_salary', 0),
+                'max_salary': job.get('max_salary', 0)
+            })
+            
+            # Convert distance to similarity score
+            base_similarity = 1 / (1 + dist)
+            
+            # Weighted similarity score
+            weighted_similarity = (
+                0.5 * base_similarity +  # Base KNN similarity
+                0.3 * skill_match +      # Skill match weight
+                0.2 * salary_compatibility  # Salary compatibility weight
+            )
+            
+            recommendations.append({
+                'job': job,
+                'similarity_score': float(weighted_similarity),
+                'skill_match': float(skill_match),
+                'salary_compatibility': float(salary_compatibility),
+                'distance': float(dist)
+            })
+            
+            # Break if we have k recommendations
+            if len(recommendations) == k:
+                break
+        
+        # Sort by weighted similarity score (descending)
+        recommendations.sort(key=lambda x: x['similarity_score'], reverse=True)
+        
+        return recommendations

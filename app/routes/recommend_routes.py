@@ -1,5 +1,4 @@
 from flask import Blueprint, abort, app, jsonify, request
-from app.utils.data_preprocessing import clean_numeric_fields
 from app.utils.job_recommender import JobRecommender
 
 
@@ -114,3 +113,35 @@ def demonstrate_job_recommendation():
     except Exception as e:
         print(f"An error occurred: {e}")
         return jsonify({'error': str(e)}), 200
+    
+@recommend_bp.route('/similar', methods=['POST'])
+def get_similar_jobs():
+    try:
+        data = request.get_json()
+        
+        if not data or 'jobs' not in data or 'jobId' not in data:
+            return jsonify({'error': 'Invalid input'}), 400
+        
+        # Create recommender
+        recommender = JobRecommender(
+            {},
+            flatten_job_data(data['jobs'])
+        )
+        
+        similar_jobs = recommender.recommend_similar_jobs(
+            job_id=data['jobId'], 
+            k=3
+        )
+        
+        job_list_ids = []
+        for rec in similar_jobs:
+            job_list_ids.append({
+                'jobId': rec['job']['id'],
+                'similarityScore': rec['similarity_score']
+            })
+        
+        return jsonify(job_list_ids), 200
+    
+    except Exception as e:
+        print(f"An error occurred: {e}")
+        return jsonify({'error': str(e)}), 400
