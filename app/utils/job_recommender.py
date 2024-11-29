@@ -68,12 +68,12 @@ class JobRecommender:
             float: Salary compatibility score (0-1)
         """
         # Employee's salary range
-        employee_min_salary = self.employee_features.get('min_salary', 0)
-        employee_max_salary = self.employee_features.get('max_salary', float('inf'))
+        employee_min_salary = self.employee_features.get('min_salary') or 0.0
+        employee_max_salary = self.employee_features.get('max_salary') or float('inf')
         
         # Job's salary range
-        job_min_salary = job_salary.get('min_salary', 0)
-        job_max_salary = job_salary.get('max_salary', float('inf'))
+        job_min_salary = job_salary.get('min_salary') or 0.0
+        job_max_salary = job_salary.get('max_salary') or float('inf')
         
         # Scenario 1: Complete Salary Range Overlap
         if (job_min_salary <= employee_max_salary and 
@@ -178,7 +178,7 @@ class JobRecommender:
         
         # Normalize employee vector
         normalized_employee = scaler.transform([employee_vector])
-        
+
         # Create KNN model
         knn = NearestNeighbors(n_neighbors=k, metric='euclidean')
         knn.fit(job_features_matrix)
