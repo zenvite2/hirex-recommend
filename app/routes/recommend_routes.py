@@ -112,13 +112,15 @@ def demonstrate_job_recommendation():
         if not data or 'jobs' not in data or 'employee' not in data:
             return jsonify({'error': 'Invalid input'}), 400
         
-        # Create recommender
         recommender = JobRecommender(
             flatten_employee_data(data['employee']), 
             flatten_job_data(data['jobs'])
         )
+
+        # print(flatten_employee_data(data['employee']))
+        # print(flatten_job_data(data['jobs']))
         
-        recommended_jobs = recommender.recommend_jobs(k=3)
+        recommended_jobs = recommender.recommend_jobs(k=4)
         
         job_list_ids = []
         for rec in recommended_jobs:
@@ -142,15 +144,17 @@ def get_similar_jobs():
         if not data or 'jobs' not in data or 'jobId' not in data:
             return jsonify({'error': 'Invalid input'}), 400
         
-        # Create recommender
         recommender = JobRecommender(
             {},
             flatten_job_data(data['jobs'])
         )
+
+        print('/similar')
+        print(flatten_job_data(data['jobs']))
         
         similar_jobs = recommender.recommend_similar_jobs(
             job_id=data['jobId'], 
-            k=3
+            k=5
         )
         
         job_list_ids = []
